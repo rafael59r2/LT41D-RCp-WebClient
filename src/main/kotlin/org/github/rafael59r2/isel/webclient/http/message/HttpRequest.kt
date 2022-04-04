@@ -1,22 +1,23 @@
-package org.github.rafael59r2.isel.webclient.http.messages
+package org.github.rafael59r2.isel.webclient.http.message
 
-import org.github.rafael59r2.isel.webclient.http.Method
 import java.net.URL
 
 class HttpRequest private constructor(private val builder: Builder) {
 
     companion object{
         val defaultHeaders: HashMap<String, String> = HashMap<String, String>().apply {
-            this["User-Agent"] = "RCpClient 1.0"
+            this["User-Agent"] = "RCpClient/1.0"
             this["Accept-Language"] = "en"
             this["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
             //this["Accept-Encoding"] = "deflate"
         }
     }
 
-    val port:Int = if(builder.url.port == -1) builder.url.defaultPort else builder.url.port
+    val port = if(builder.url.port == -1) builder.url.defaultPort else builder.url.port
 
     val host = builder.url.host
+
+    val method = builder.method
 
     init {
         builder.headers.putIfAbsent("Host", builder.url.host)

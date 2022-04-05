@@ -8,40 +8,49 @@ class HttpRequest private constructor(private val builder: Builder) {
         val defaultHeaders: HashMap<String, String> = HashMap<String, String>().apply {
             this["User-Agent"] = "RCpClient/1.0"
             this["Accept-Language"] = "en"
-            this["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
-            //this["Accept-Encoding"] = "deflate"
+            this["Accept"] = "*/*"
+            this["Connection"] = "Close"
+            // this["Accept-Encoding"] = "gzip"
         }
     }
 
-    val port = if(builder.url.port == -1) builder.url.defaultPort else builder.url.port
+    var port = if(builder.url.port == -1) builder.url.defaultPort else builder.url.port
 
-    val host = builder.url.host
+    var headers = builder.headers
 
-    val method = builder.method
+    var method = builder.method
+
+    var url = builder.url
+
+    var body = builder.body
+
+    var cookies = builder.cookies
+
+    var redirect = builder.redirect
 
     init {
-        builder.headers.putIfAbsent("Host", builder.url.host)
-        if(builder.body != "") builder.headers.putIfAbsent("Content-Length", builder.body.length.toString())
-        defaultHeaders.forEach(builder.headers::putIfAbsent)
+        builder.headers.putIfAbsent("Host", url.host)
+        if(body != "") headers.putIfAbsent("Content-Length", body.length.toString())
+        defaultHeaders.forEach(headers::putIfAbsent)
     }
 
     override fun toString(): String {
         var raw = ""
-        raw += "${builder.method} ${builder.url.path.ifEmpty { "/" }} HTTP/1.1\r\n"
+        raw += "$method ${url.path.ifEmpty { "/" }} HTTP/1.1\r\n"
 
-        for (header in builder.headers) {
+        for (header in headers) {
             raw += "${header.key}: ${header.value}\r\n"
         }
 
-        if (builder.cookies.isNotEmpty()){
+        if (cookies.isNotEmpty()){
             var cookieStr = ""
-            for (cookie in builder.cookies){
+            for (cookie in cookies){
                 cookieStr += "${cookie.key}=${cookie.value};"
             }
             cookieStr += "\r\n"
         }
         raw += "\r\n"
-        raw += builder.body
+        raw += body
         return raw
     }
 
@@ -62,6 +71,9 @@ class HttpRequest private constructor(private val builder: Builder) {
         var body: String = ""
             private set
 
+        var redirect: Boolean = false
+            private set
+
         fun method(method: Method) = apply { this.method = method }
 
         fun url(url: URL) = apply { this.url = url }
@@ -71,6 +83,8 @@ class HttpRequest private constructor(private val builder: Builder) {
         fun cookies(cookies: HashMap<String, String>) = apply { this.cookies = cookies }
 
         fun body(body: String) = apply { this.body = body }
+
+        fun followRedirect(redirect: Boolean) = apply { this.redirect = redirect }
 
         fun build() = HttpRequest(this)
     }

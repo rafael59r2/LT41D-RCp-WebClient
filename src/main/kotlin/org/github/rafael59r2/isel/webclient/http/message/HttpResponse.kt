@@ -1,37 +1,58 @@
 package org.github.rafael59r2.isel.webclient.http.message
 
+import org.github.rafael59r2.isel.webclient.http.HttpClient
+import org.github.rafael59r2.isel.webclient.http.Utils
 import java.io.BufferedReader
+import java.net.URL
+import java.nio.CharBuffer
+import java.security.cert.X509Certificate
 
 class HttpResponse private constructor(
-    val status: String,
+    val status: List<String>,
     val headers: HashMap<String, String>,
-    val body: ByteArray?,
+    val body: String,
     val requestMethod: Method
 ) {
     companion object {
-         fun parse(reader: BufferedReader, method: Method): HttpResponse {
-            val responseStatus = reader.readLine()
+        fun parse(reader: BufferedReader, request: HttpRequest): HttpResponse {
+            val responseStatus = reader.readLine().split(" ", limit = 3)
+            println(responseStatus)
             val headers = HashMap<String, String>()
             var line: String
             while (reader.readLine().also { line = it } != "") {
-                val header = line.split(":").map(String::trim)
+                println(line)
+                val header = line.split(":", limit = 2).map(String::trim)
                 headers[header[0]] = header[1]
             }
 
             val size = headers["Content-Length"]?.toInt() ?: 0
 
-            var content: ByteArray? = null
-            if (method != Method.OPTIONS &&
+
+            var content = ""
+            if (request.method != Method.OPTIONS &&
                 /* method != Method.TRACE &&*/
-                method != Method.HEAD
+                request.method != Method.HEAD
             ) {
-                content = ByteArray(size)
-                repeat(size) {
-                    content[it] = reader.read().toByte()
+                if (headers["Transfer-Encoding"].equals("chunked", true)) {
+                    content = Utils.parseChunked(reader)
+                } else {
+                    repeat(size) {
+                        content += reader.read().toChar()
+                    }
                 }
             }
 
-            return HttpResponse(responseStatus, headers, content, method)
+            if ((responseStatus[1] == "302" || responseStatus[1] == "301") && request.redirect) {
+                val newRequest = HttpRequest.Builder()
+                    .url(URL(headers["Location"]))
+                    .method(request.method)
+                    .body(request.body)
+                    .followRedirect(true)
+                    .build()
+                return HttpClient.sendRequest(newRequest)
+            }
+
+            return HttpResponse(responseStatus, headers, content, request.method)
         }
     }
 }

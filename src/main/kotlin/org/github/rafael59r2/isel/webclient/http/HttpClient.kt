@@ -9,16 +9,16 @@ import java.io.PrintWriter
 
 object HttpClient {
     fun sendRequest(request: HttpRequest): HttpResponse {
-        return Connection.tcpConnection(request.host, request.port) { socket ->
+        return Connection.tcpConnection(request.url.host, request.port, request.url.protocol.equals("https", false)) { socket ->
             val writer = PrintWriter(socket.getOutputStream())
             writer.print(request.toString())
             writer.flush()
             val reader = BufferedReader(
                 InputStreamReader(
-                    socket.getInputStream()
+                    socket.getInputStream(), Charsets.UTF_8
                 )
             )
-            return@tcpConnection HttpResponse.parse(reader, request.method)
+            return@tcpConnection HttpResponse.parse(reader, request)
         }
     }
 }

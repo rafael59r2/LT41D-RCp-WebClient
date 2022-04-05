@@ -11,13 +11,12 @@ import java.net.URL
 suspend fun main(args: Array<String>) {
     coroutineScope {
         val request = HttpRequest.Builder()
-            .url(URL("http://example.com"))
-            .method(Method.POST)
-            .body("Teste")
+            .url(URL("https://google.com/"))
+            .method(Method.GET)
+            .followRedirect(true)
             .build()
+        //println(request)
         val futureResponse = async(Dispatchers.IO) { HttpClient.sendRequest(request) }
-        println("Teste1")
-        println(futureResponse.isCompleted)
-        println("Teste2")
+        println(futureResponse.await().body)
     }
 }

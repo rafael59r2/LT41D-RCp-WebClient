@@ -1,91 +1,129 @@
 package org.github.rafael59r2.isel.webclient.http.message
 
-import java.net.URL
+import org.github.rafael59r2.isel.webclient.http.models.Method
+import org.github.rafael59r2.isel.webclient.http.models.URL
 
-class HttpRequest private constructor(private val builder: Builder) {
+class HttpRequest private constructor(builder: Builder) {
 
     companion object{
+        // Default Request Headers
         val defaultHeaders: HashMap<String, String> = HashMap<String, String>().apply {
             this["User-Agent"] = "RCpClient/1.0"
             this["Accept-Language"] = "en"
             this["Accept"] = "*/*"
             this["Connection"] = "Close"
-            // this["Accept-Encoding"] = "gzip"
         }
     }
 
-    var port = if(builder.url.port == -1) builder.url.defaultPort else builder.url.port
+    // Request Headers
+    val headers: Map<String, String>
 
-    var headers = builder.headers
+    // Request Method
+    val method = builder.method
 
-    var method = builder.method
+    // Request URL
+    val url = builder.url
 
-    var url = builder.url
+    // Request Port
+    val port = url.port
 
-    var body = builder.body
+    // Request Body
+    val body = builder.body
 
-    var cookies = builder.cookies
+    // Request Cookies
+    val cookies = builder.cookies
 
-    var redirect = builder.redirect
+    // Follow Redirects
+    val redirect = builder.redirect
 
     init {
+
+        // Set host Header if not set
         builder.headers.putIfAbsent("Host", url.host)
-        if(body != "") headers.putIfAbsent("Content-Length", body.length.toString())
-        defaultHeaders.forEach(headers::putIfAbsent)
+
+        // Set Content-Length Header if not set and body is not empty
+        if(body.isNotEmpty()) builder.headers.putIfAbsent("Content-Length", body.length.toString())
+
+        // Set default headers if not set
+        defaultHeaders.forEach(builder.headers::putIfAbsent)
+        headers = builder.headers.toMap()
     }
 
+    // Crafts a raw HTTP Request String
     override fun toString(): String {
+        // Raw Request String
         var raw = ""
-        raw += "$method ${url.path.ifEmpty { "/" }} HTTP/1.1\r\n"
 
+        // Add request line to raw string
+        raw += "$method ${url.path.ifEmpty { "/" }}${if(url.query.isNotEmpty()) "?${url.query}" else ""} HTTP/1.1\r\n"
+
+        // Add request headers to raw string
         for (header in headers) {
             raw += "${header.key}: ${header.value}\r\n"
         }
 
+        // If cookies are set, add them to raw string
         if (cookies.isNotEmpty()){
-            var cookieStr = ""
+            var cookieStr = "Cookie: "
             for (cookie in cookies){
                 cookieStr += "${cookie.key}=${cookie.value};"
             }
-            cookieStr += "\r\n"
+            raw += cookieStr + "\r\n"
         }
+
+        // Add empty line to raw string
         raw += "\r\n"
+
+        // Add request body to raw string
         raw += body
+
+        // Return raw string
         return raw
     }
 
     class Builder {
 
+        // Request method (GET, POST, etc)
         var method: Method = Method.GET
             private set
 
-        var url: URL = URL("http://127.0.0.1")
+        // Request URL (http://www.example.com/path/to/resource?query=string)
+        var url = URL.of("http://127.0.0.1")
             private set
 
-        var headers: HashMap<String, String> = HashMap()
-            private set
+        // Request headers (key: value)
+        val headers: HashMap<String, String> = HashMap()
 
-        var cookies: HashMap<String, String> = HashMap()
-            private set
+        // Request cookies (key: value)
+        val cookies: HashMap<String, String> = HashMap()
 
+        // Request body (default empty)
         var body: String = ""
             private set
 
+        // Follow redirects (default: false)
         var redirect: Boolean = false
             private set
 
+        // Sets request method
         fun method(method: Method) = apply { this.method = method }
 
+        // Sets request URL
         fun url(url: URL) = apply { this.url = url }
 
-        fun headers(headers: HashMap<String, String>) = apply { this.headers = headers }
+        // Set cookie (key: value)
+        fun cookie(name: String, value: String) = apply { this.cookies[name] = value }
 
-        fun cookies(cookies: HashMap<String, String>) = apply { this.cookies = cookies }
+        // Set header (key: value)
+        fun header(name: String, value: String) = apply { headers[name] = value }
 
+        // Set body
         fun body(body: String) = apply { this.body = body }
 
+        // Set if redirects should be followed
         fun followRedirect(redirect: Boolean) = apply { this.redirect = redirect }
 
+        // Builds HttpRequest
         fun build() = HttpRequest(this)
     }
 }

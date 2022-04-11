@@ -9,7 +9,7 @@ class HttpRequest private constructor(builder: Builder) {
         // Default Request Headers
         val defaultHeaders: HashMap<String, String> = HashMap<String, String>().apply {
             this["User-Agent"] = "RCpClient/1.0"
-            this["Accept-Language"] = "en"
+            this["Accept-Language"] = "*"
             this["Accept"] = "*/*"
             this["Connection"] = "Close"
         }

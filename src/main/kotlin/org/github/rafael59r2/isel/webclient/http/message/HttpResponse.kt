@@ -58,7 +58,7 @@ data class HttpResponse constructor(
             * if request is following redirects and if it is,
             * it follows the redirect creating a new request
             */
-            if ((responseStatus[1] == "302" || responseStatus[1] == "301") && request.redirect && headers.containsKey("Location")) {
+            if ((responseStatus[1] == "302" || responseStatus[1] == "301" || responseStatus[1] == "201") && request.redirect && headers.containsKey("Location")) {
                 // Creates a new request with the location header as the URL
                 val newRequest = HttpRequest.Builder()
                     .url(URL.of(headers["Location"]!!))
